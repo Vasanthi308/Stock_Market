@@ -9,6 +9,15 @@ export async function generateMetadata({ params }: { params: { symbol: string } 
     };
 }
 
+export async function generateStaticParams() {
+    return [
+        { symbol: 'RELIANCE' },
+        { symbol: 'HDFCBANK' },
+        { symbol: 'TCS' },
+        { symbol: 'INFY' },
+    ];
+}
+
 export default function StockDetailsPage({ params }: { params: { symbol: string } }) {
     if (!params.symbol) {
         notFound();
