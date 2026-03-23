@@ -1,279 +1,229 @@
 "use client";
 
-import { usePortfolioData } from "@/lib/market-simulator";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { EquityCurve } from "@/components/dashboard/equity-curve";
-import { LiveStocksTable } from "@/components/dashboard/live-stocks-table";
-import { SignalBadge } from "@/components/ui/signal-badge";
-import { Zap, Activity, Target, BellRing, Info, Wallet } from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { Eye, EyeOff, Mail, Lock, CheckCircle2 } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
-export default function Dashboard() {
-  const { totalValue, dailyPnl, dailyPnlPercent, activePositions, accuracy, pendingAlerts } = usePortfolioData();
-  const [timeRange, setTimeRange] = useState("1M");
+export default function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const kpis = [
-    { title: "Portfolio Value", value: `₹${(totalValue / 100000).toFixed(2)}L`, change: `+₹${dailyPnl.toLocaleString('en-IN')}`, changePct: `+${dailyPnlPercent.toFixed(2)}%`, icon: Wallet, isPos: dailyPnl >= 0 },
-    { title: "Today's P&L", value: `+₹${Math.abs(dailyPnl).toLocaleString('en-IN')}`, subtext: "Realized: ₹2,140", icon: Activity, isPos: dailyPnl >= 0 },
-    { title: "Active Positions", value: activePositions.toString(), subtext: "5 Long / 2 Short", icon: Target, isPos: true },
-    { title: "AI Signal Accuracy", value: `${accuracy}%`, subtext: "+1.2% this month", icon: Zap, isPos: true },
-    { title: "Pending Alerts", value: pendingAlerts.toString(), subtext: "2 Price, 1 News", icon: BellRing, isPos: null },
-  ];
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    // Simulate auth
+    setTimeout(() => {
+      setIsLoading(false);
+      // Ensure redirect is aware of the GitHub Pages subpath
+      window.location.href = '/Stock_Market/dashboard/';
+    }, 1500);
+  };
 
   return (
-    <DashboardLayout>
-      <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto pb-10">
-        
-        {/* ROW 1: Welcome */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mt-2">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-white mb-1">Hey Hello, Admin 👋</h1>
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-400">
-              <span className="w-2 h-2 rounded-full bg-[#00D4AA] animate-pulse"></span>
-              NSE is Open <span className="text-gray-600 px-1">•</span> 3h 24m remaining
-            </div>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-            <Link href="/orders" className="whitespace-nowrap bg-[#0F1928] hover:bg-[#1a2536] border border-white/10 text-white font-bold py-2 px-4 rounded-xl shadow-sm transition-colors text-sm">
-              + New Order
-            </Link>
-            <Link href="/signal-engine" className="whitespace-nowrap bg-gradient-to-r from-blue-900/40 to-[#00D4AA]/20 border border-[#00D4AA]/30 hover:border-[#00D4AA]/60 text-[#00D4AA] font-bold py-2 px-4 rounded-xl shadow-sm transition-all text-sm group flex items-center">
-              <Zap className="w-4 h-4 inline-block mr-1.5 group-hover:scale-110 transition-transform" /> Generate Signal
-            </Link>
-            <Link href="/backtesting" className="whitespace-nowrap bg-[#0F1928] hover:bg-[#1a2536] border border-white/10 text-white font-bold py-2 px-4 rounded-xl shadow-sm transition-colors text-sm">
-              Run Backtest
-            </Link>
-          </div>
-        </div>
-
-        {/* ROW 2: KPI CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-          {kpis.map((kpi, i) => (
-            <div key={i} className="glass-card rounded-2xl p-5 flex flex-col justify-between group overflow-hidden relative">
-              <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/[0.02] rounded-full blur-[20px] group-hover:bg-white/[0.04] transition-colors pointer-events-none"></div>
-              
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gray-800/80 border border-white/5 flex items-center justify-center">
-                  <kpi.icon className={cn("w-4 h-4", kpi.isPos === true ? "text-[#00D4AA]" : kpi.isPos === false ? "text-[#FF4D6D]" : "text-blue-400")} />
-                </div>
-                {kpi.changePct && (
-                  <span className={cn("text-xs font-bold px-1.5 py-0.5 rounded", kpi.isPos ? "bg-[#00D4AA]/10 text-[#00D4AA]" : "bg-[#FF4D6D]/10 text-[#FF4D6D]")}>
-                    {kpi.changePct}
-                  </span>
-                )}
-              </div>
-              
-              <div className="relative z-10">
-                <p className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">{kpi.title}</p>
-                <h3 className="text-2xl font-black tabular-nums tracking-tight">{kpi.value}</h3>
-                
-                <div className="mt-2 text-xs font-bold text-gray-400 flex items-center gap-1.5">
-                  {(kpi.change || kpi.subtext) && (
-                    <span className={cn(kpi.isPos && kpi.change ? "text-[#00D4AA]" : kpi.isPos === false && kpi.change ? "text-[#FF4D6D]" : "")}>
-                      {kpi.change || kpi.subtext}
-                    </span>
-                  )}
-                  {kpi.change && <span className="opacity-60 font-medium">today</span>}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ROW 3: Main Grid (2/3 + 1/3) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* LEFT 2/3 COLUMN */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Equity Curve */}
-            <div className="glass-card rounded-2xl p-6 h-[400px] flex flex-col">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="font-bold text-lg flex items-center gap-2">Portfolio Performance</h3>
-                </div>
-                <div className="flex border border-white/10 rounded-lg p-0.5 bg-[#060B14]">
-                  {['1D', '1W', '1M', '3M', '6M', '1Y'].map(t => (
-                    <button 
-                      key={t}
-                      onClick={() => setTimeRange(t)}
-                      className={cn(
-                        "px-3 py-1.5 text-xs font-bold rounded-md transition-colors",
-                        timeRange === t ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex-1 min-h-0 w-full relative -ml-2">
-                <EquityCurve timeRange={timeRange} />
-              </div>
-            </div>
-
-            {/* Indian Stocks Table */}
-            <div className="glass-card rounded-2xl overflow-hidden border border-white/5">
-              <div className="p-5 border-b border-white/5 flex justify-between items-center bg-[#080E19]/80">
-                <h3 className="font-bold text-lg">NIFTY 50 Universe</h3>
-                <div className="relative">
-                  <input type="text" placeholder="Filter stocks..." className="bg-[#060B14] border border-white/10 rounded-lg py-1.5 px-3 text-xs w-48 focus:outline-none focus:border-[#00D4AA]/50" />
-                </div>
-              </div>
-              <LiveStocksTable />
-            </div>
-            
-          </div>
-
-          {/* RIGHT 1/3 COLUMN */}
-          <div className="space-y-6">
-            
-            {/* AI Insights */}
-            <div className="rounded-2xl p-1 bg-gradient-to-b from-[#00D4AA]/20 via-[#0F1928] to-[#0F1928] shadow-[0_0_30px_rgba(0,212,170,0.05)]">
-              <div className="bg-[#0F1928] rounded-xl h-full p-6">
-                <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#00D4AA]/10 border border-[#00D4AA]/20 flex items-center justify-center text-[#00D4AA]">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg leading-tight text-white">AI Market Insights</h3>
-                    <p className="text-[10px] text-[#00D4AA] font-bold uppercase tracking-wider">Powered by Genkit</p>
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div className="flex justify-between items-center mb-2 text-sm font-bold">
-                    <span className="text-gray-400">Market Sentiment</span>
-                    <span className="text-[#00D4AA]">Bullish 73%</span>
-                  </div>
-                  
-                  <div className="w-full bg-[#060B14] rounded-full h-2 border border-white/5 overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-500 to-[#00D4AA] h-full rounded-full w-[73%]"></div>
-                  </div>
-
-                  <div className="space-y-3 mt-6">
-                    {[
-                      { text: "Banking sector showing strong accumulation patterns", conf: 88, pos: true },
-                      { text: "IT stocks facing resistance at 50-SMA", conf: 72, pos: false },
-                      { text: "FII buying momentum detected in large caps", conf: 91, pos: true }
-                    ].map((insight, i) => (
-                      <div key={i} className="flex gap-3 items-start p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors">
-                        <Info className={cn("w-4 h-4 shrink-0 mt-0.5", insight.pos ? "text-[#00D4AA]" : "text-[#FF4D6D]")} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-200 leading-snug">{insight.text}</p>
-                          <div className="text-[10px] text-gray-500 font-bold mt-1.5 uppercase tracking-wider">Confidence: {insight.conf}%</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Active Alerts */}
-            <div className="glass-card rounded-2xl p-6 border border-white/5">
-              <h3 className="font-bold text-base mb-5 flex items-center gap-2">
-                <BellRing className="w-4 h-4 text-amber-500" /> Active Alerts
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-sm text-gray-200">RELIANCE</span>
-                      <span className="text-[10px] bg-[#00D4AA]/20 text-[#00D4AA] px-1.5 py-0.5 rounded font-bold">TRIGGERED</span>
-                    </div>
-                    <p className="text-xs text-gray-400 font-medium">Crossed above ₹2,850.00</p>
-                  </div>
-                  <div className="font-mono text-sm font-bold text-white">₹2,852.30</div>
-                </div>
-                <div className="flex justify-between items-center p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-sm text-gray-200">HDFCBANK</span>
-                      <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold border border-amber-500/20">PENDING</span>
-                    </div>
-                    <p className="text-xs text-gray-400 font-medium">Target drop info below ₹1,630</p>
-                  </div>
-                  <div className="font-mono text-sm font-bold text-gray-500">₹1,642.00</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Signal Distribution Donut Placeholder */}
-            <div className="glass-card rounded-2xl p-6 border border-white/5 flex flex-col items-center justify-center min-h-[200px]">
-               <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider mb-4 border-b border-white/5 pb-2 w-full text-center">Signal Distribution</h3>
-               <div className="relative w-32 h-32 rounded-full border-[12px] border-[#00D4AA] border-r-blue-500 border-b-[#FF4D6D] border-l-[#00D4AA] flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-                 <div className="text-center absolute">
-                   <div className="font-mono font-bold text-xl">1,284</div>
-                   <div className="text-[10px] text-gray-500 font-bold uppercase">Signals</div>
-                 </div>
-               </div>
-               <div className="flex gap-4 mt-6 text-xs font-bold">
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#00D4AA]"></div> BUY 45%</div>
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> HOLD 32%</div>
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#FF4D6D]"></div> SELL 23%</div>
-               </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* ROW 4: AI Prediction Timeline */}
-        <div className="mt-4 glass-card rounded-2xl border border-white/5 overflow-hidden">
-          <div className="p-5 border-b border-white/5 flex justify-between items-center bg-[#080E19]/80">
-            <h3 className="font-bold text-lg">AI Prediction Timeline</h3>
-            <button className="text-sm text-[#00D4AA] font-bold hover:underline">View All Signals</button>
-          </div>
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/[0.02] border-b border-white/5 font-bold">
-                <tr>
-                  <th className="px-6 py-4">Asset</th>
-                  <th className="px-6 py-4">Signal</th>
-                  <th className="px-6 py-4">Confidence</th>
-                  <th className="px-6 py-4 text-right">Entry</th>
-                  <th className="px-6 py-4 text-right">Target</th>
-                  <th className="px-6 py-4 text-right">Stop Loss</th>
-                  <th className="px-6 py-4">Timeframe</th>
-                  <th className="px-6 py-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {[
-                  { sym: 'TCS.NS', type: 'BUY', conf: 92, entry: 3890, tg: 3950, sl: 3840, tf: 'Intraday', stat: 'Active' },
-                  { sym: 'INFY.NS', type: 'SELL', conf: 85, entry: 1450, tg: 1420, sl: 1465, tf: 'Swing', stat: 'Triggered' },
-                  { sym: 'SBIN.NS', type: 'BUY', conf: 78, entry: 780, tg: 810, sl: 765, tf: 'Positional', stat: 'Pending' }
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 font-bold text-gray-200">{row.sym.split('.')[0]}</td>
-                    <td className="px-6 py-4"><SignalBadge type={row.type as any} confidence={row.conf} /></td>
-                    <td className="px-6 py-4">
-                      <div className="w-24 bg-[#060B14] rounded-full h-1.5 border border-white/5 overflow-hidden">
-                        <div className={cn("h-1.5 rounded-full", row.conf > 90 ? "bg-[#00D4AA]" : row.conf > 80 ? "bg-blue-400" : "bg-amber-400")} style={{ width: `${row.conf}%` }}></div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-gray-300">₹{row.entry}</td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-[#00D4AA]">₹{row.tg}</td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-[#FF4D6D]">₹{row.sl}</td>
-                    <td className="px-6 py-4 text-gray-500 font-bold text-xs uppercase tracking-wider">{row.tf}</td>
-                    <td className="px-6 py-4">
-                      <span className={cn("text-[10px] font-bold px-2 py-1 rounded-sm border uppercase tracking-wider", 
-                        row.stat === 'Active' ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                        row.stat === 'Triggered' ? "bg-[#00D4AA]/10 text-[#00D4AA] border-[#00D4AA]/20" :
-                        "bg-white/5 text-gray-400 border-white/10"
-                      )}>{row.stat}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
+    <div className="min-h-screen flex bg-[#060B14] text-white overflow-hidden relative font-sans">
+      
+      {/* Animated CSS Nodes Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {[...Array(20)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute rounded-full bg-[#00D4AA]/10"
+            style={{
+              width: Math.random() * 4 + 2 + 'px',
+              height: Math.random() * 4 + 2 + 'px',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+              animation: `float ${Math.random() * 10 + 10}s linear infinite`,
+              opacity: Math.random() * 0.5 + 0.1
+            }}
+          />
+        ))}
+        {/* CSS definition for float animation injected below but typically in globals */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes float {
+            0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-1000px) translateX(200px); opacity: 0; }
+          }
+        `}} />
       </div>
-    </DashboardLayout>
+
+      {/* LEFT SIDE - Branding & Animation */}
+      <div className="hidden lg:flex flex-col justify-center w-1/2 p-12 relative z-10 border-r border-white/5 bg-gradient-to-br from-[#060B14] to-[#080E19]">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]"></div>
+        
+        <div className="max-w-xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mb-12"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00D4AA] to-blue-600 flex items-center justify-center font-bold text-2xl text-white shadow-[0_0_30px_rgba(0,212,170,0.5)]">
+                Q
+              </div>
+              <h1 className="text-4xl font-black tracking-tight text-white">
+                QuantAxis <span className="text-[#00D4AA]">Pro</span>
+              </h1>
+            </div>
+            
+            <h2 className="text-5xl font-extrabold leading-tight mb-6 bg-gradient-to-r from-white via-white to-gray-400 bg-clip-text text-transparent">
+              Institutional Grade <br />
+              <span className="text-[#00D4AA]">Trading Terminal.</span>
+            </h2>
+            <p className="text-xl text-gray-400 font-medium">
+              Advanced execution, real-time analytics, and AI-driven market intelligence for Indian equities.
+            </p>
+          </motion.div>
+
+          {/* Animated Candlestick Preview */}
+          <div className="bg-[#0F1928] rounded-2xl p-6 border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#00D4AA] opacity-5 blur-[100px] rounded-full"></div>
+            
+            <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-bold text-xl">RELIANCE.NS</span>
+                  <span className="bg-[#00D4AA]/20 text-[#00D4AA] text-[10px] font-bold px-2 py-0.5 rounded">AI SIGNAL: BUY</span>
+                </div>
+                <div className="text-sm font-mono text-gray-400 mt-1">NSE Equity</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold font-mono text-[#00D4AA]">₹2,847.50</div>
+                <div className="text-sm font-bold text-[#00D4AA]">+1.24%</div>
+              </div>
+            </div>
+
+            <div className="h-32 flex items-end gap-2 justify-between">
+              {[40, 60, 45, 75, 55, 80, 70, 95, 85, 110, 100, 120].map((h, i) => (
+                <motion.div 
+                  key={i}
+                  initial={{ height: 0 }}
+                  animate={{ height: `${h}%` }}
+                  transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
+                  className={cn(
+                    "w-full rounded-t-sm relative",
+                    i % 3 === 0 ? "bg-[#FF4D6D]" : "bg-[#00D4AA]"
+                  )}
+                >
+                  <div className={cn("absolute top-[-10px] left-1/2 -ml-[1px] w-[2px] h-[120%] opacity-40", i % 3 === 0 ? "bg-[#FF4D6D]" : "bg-[#00D4AA]")}></div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="mt-8 flex gap-6 text-sm text-gray-500 font-medium">
+             <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#00D4AA]" /> SEBI Compliant</div>
+             <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#00D4AA]" /> 256-bit Encryption</div>
+             <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#00D4AA]" /> Genkit AI Powered</div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE - Auth Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10">
+        
+        {/* Ambient glows */}
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full"></div>
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md glass p-8 sm:p-10 rounded-3xl"
+        >
+          <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#00D4AA] flex items-center justify-center font-bold text-xl text-[#060B14]">Q</div>
+            <span className="font-bold text-2xl tracking-tight text-white">QuantAxis Pro</span>
+          </div>
+
+          <h2 className="text-3xl font-bold mb-2 text-white">Welcome back</h2>
+          <p className="text-gray-400 font-medium mb-8">Enter your credentials to access the terminal.</p>
+          
+          <button className="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-3.5 px-4 rounded-xl hover:bg-gray-100 transition-colors mb-6 shadow-lg">
+            <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continue with Google
+          </button>
+          
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-px bg-white/10 flex-1"></div>
+            <span className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Or email</span>
+            <div className="h-px bg-white/10 flex-1"></div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-300 ml-1">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-[#00D4AA] transition-colors" />
+                <input 
+                  type="email" 
+                  placeholder="name@company.com"
+                  className={cn(
+                    "w-full bg-[#060B14]/50 border rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 transition-all",
+                    error ? "border-[#FF4D6D] focus:ring-[#FF4D6D]/50 focus:border-[#FF4D6D]" : "border-white/10 focus:border-[#00D4AA]/50 focus:ring-[#00D4AA]/50"
+                  )}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-sm font-bold text-gray-300">Password</label>
+                <Link href="#" className="text-sm font-bold text-[#00D4AA] hover:text-[#00D4AA]/80 transition-colors">Forgot?</Link>
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-[#00D4AA] transition-colors" />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  className={cn(
+                    "w-full bg-[#060B14]/50 border rounded-xl py-3.5 pl-12 pr-12 text-white placeholder:text-gray-600 focus:outline-none focus:ring-1 transition-all",
+                    error ? "border-[#FF4D6D] focus:ring-[#FF4D6D]/50 focus:border-[#FF4D6D]" : "border-white/10 focus:border-[#00D4AA]/50 focus:ring-[#00D4AA]/50"
+                  )}
+                  required
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {error && <p className="text-[#FF4D6D] text-xs font-bold mt-1.5 ml-1">{error}</p>}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1 pb-2">
+              <input type="checkbox" id="remember" className="rounded bg-[#060B14] border-white/20 text-[#00D4AA] focus:ring-[#00D4AA]/30 w-4 h-4" />
+              <label htmlFor="remember" className="text-sm font-medium text-gray-400 cursor-pointer">Remember this device</label>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className="w-full bg-[#00D4AA] hover:bg-[#00D4AA]/90 text-[#060B14] font-black text-lg py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(0,212,170,0.3)] hover:shadow-[0_0_25px_rgba(0,212,170,0.5)] flex justify-center items-center"
+            >
+              {isLoading ? (
+                <div className="w-6 h-6 border-2 border-[#060B14]/30 border-t-[#060B14] rounded-full animate-spin"></div>
+              ) : "Login to Terminal"}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-gray-400 font-medium text-sm">
+            Don't have an account? <Link href="/register" className="text-white font-bold hover:text-[#00D4AA] transition-colors underline decoration-white/30 underline-offset-4 hover:decoration-[#00D4AA]">Apply for access</Link>
+          </p>
+          
+          <p className="mt-8 text-center text-xs text-gray-600 font-medium">
+            By signing in, you agree to SEBI guidelines & our Terms of Service.
+          </p>
+        </motion.div>
+      </div>
+    </div>
   );
 }

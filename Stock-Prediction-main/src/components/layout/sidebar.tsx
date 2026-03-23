@@ -14,7 +14,7 @@ const NAV_GROUPS = [
   {
     title: "OVERVIEW",
     items: [
-      { name: "Dashboard", href: "/", icon: LayoutDashboard },
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { name: "Market Overview", href: "/market-data", icon: BarChart2 },
     ]
   },
