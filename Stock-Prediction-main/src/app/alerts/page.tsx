@@ -3,15 +3,21 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Bell, Play, Trash2, Edit3, Smartphone, Mail, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useMarketData } from "@/lib/market-simulator";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function AlertsPage() {
+  const { marketData } = useMarketData();
+  const { toast } = useToast();
   const [alertsList, setAlertsList] = useState([
     { stock: "RELIANCE.NS", cond: "Price crosses above", target: "₹ 2,900.00", method: "Push + Email", active: true },
     { stock: "HDFCBANK.NS", cond: "Price falls below", target: "₹ 1,550.00", method: "SMS", active: true },
     { stock: "INFY.NS", cond: "Volume spike >", target: "300%", method: "Push", active: false },
     { stock: "TCS.NS", cond: "MACD crosses Signal", target: "Daily TF", method: "Email", active: true }
   ]);
+  const triggeredReactions = useRef<Record<string, number>>({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newStock, setNewStock] = useState("RELIANCE.NS");
@@ -39,6 +45,45 @@ export default function AlertsPage() {
     arr[idx].active = !arr[idx].active;
     setAlertsList(arr);
   };
+
+  // Real-time monitoring logic
+  useEffect(() => {
+    alertsList.forEach((alert, index) => {
+      if (!alert.active) return;
+      
+      const data = marketData[alert.stock];
+      if (!data) return;
+
+      const currentPrice = data.price;
+      const targetStr = alert.target.replace(/[₹\s,]/g, '');
+      const targetPrice = parseFloat(targetStr);
+
+      if (isNaN(targetPrice)) return;
+
+      let triggered = false;
+      if (alert.cond === "Price crosses above" && currentPrice >= targetPrice) {
+        triggered = true;
+      } else if (alert.cond === "Price falls below" && currentPrice <= targetPrice) {
+        triggered = true;
+      }
+
+      if (triggered) {
+        const key = `${alert.stock}-${alert.cond}-${alert.target}`;
+        const lastTrigger = triggeredReactions.current[key] || 0;
+        const now = Date.now();
+        
+        // Trigger only once every 30 seconds to avoid spam
+        if (now - lastTrigger > 30000) {
+          triggeredReactions.current[key] = now;
+          toast({
+            title: "🔔 Alert Triggered!",
+            description: `${alert.stock.split('.')[0]} matched condition: ${alert.cond} ${alert.target} (Current: ₹${currentPrice.toFixed(2)})`,
+            variant: "default",
+          });
+        }
+      }
+    });
+  }, [marketData, alertsList, toast]);
 
   return (
     <DashboardLayout>

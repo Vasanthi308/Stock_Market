@@ -54,15 +54,13 @@ export function Header() {
             </div>
           </div>
 
-          {user && (
-            <Link href="/alerts" className="relative p-2 text-gray-400 hover:text-white transition-all duration-200 hover:bg-white/5 rounded-full active:scale-95">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D6D] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D6D] border-2 border-[#080E19]"></span>
-              </span>
-            </Link>
-          )}
+          <Link href="/alerts" className="relative p-2 text-gray-400 hover:text-white transition-all duration-200 hover:bg-white/5 rounded-full active:scale-95">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D6D] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D6D] border-2 border-[#080E19]"></span>
+            </span>
+          </Link>
 
           <div className="relative group">
             <button className="flex items-center gap-2 pl-2 md:border-l border-white/10 text-gray-400 hover:text-white transition-colors group relative peer">

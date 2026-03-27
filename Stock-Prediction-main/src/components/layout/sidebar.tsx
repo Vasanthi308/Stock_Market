@@ -51,7 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "TOOLS",
     items: [
-      { name: "Alerts", href: "/alerts", icon: Bell, badge: 3, authRequired: true },
+      { name: "Alerts", href: "/alerts", icon: Bell, badge: 3 },
     ]
   },
   {
@@ -116,29 +116,27 @@ export function Sidebar() {
               {group.items.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
                 return (
-                  (!item.authRequired || (item.authRequired && user)) && (
-                    <Link 
-                      key={item.href} 
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
-                        isActive 
-                          ? "text-[#00D4AA] bg-[#00D4AA]/10" 
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
-                      )}
-                    >
-                      {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#00D4AA] rounded-r-full shadow-[0_0_8px_#00D4AA]" />}
-                      
-                      <item.icon size={18} className={cn("shrink-0", isActive ? "text-[#00D4AA]" : "text-gray-500 group-hover:text-gray-300")} />
-                      {item.name}
-                      
-                      {item.badge && (
-                        <span className="ml-auto bg-[#FF4D6D] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center shadow-[0_0_8px_rgba(255,77,109,0.5)]">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )
+                  <Link 
+                    key={item.href} 
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
+                      isActive 
+                        ? "text-[#00D4AA] bg-[#00D4AA]/10" 
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#00D4AA] rounded-r-full shadow-[0_0_8px_#00D4AA]" />}
+                    
+                    <item.icon size={18} className={cn("shrink-0", isActive ? "text-[#00D4AA]" : "text-gray-500 group-hover:text-gray-300")} />
+                    {item.name}
+                    
+                    {item.badge && (
+                      <span className="ml-auto bg-[#FF4D6D] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center shadow-[0_0_8px_rgba(255,77,109,0.5)]">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
                 );
               })}
             </div>
@@ -148,15 +146,13 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-white/5 bg-[#060B14]">
         <div className="flex items-center justify-between text-xs font-medium bg-[#0F1928] p-2.5 rounded-lg border border-white/5">
-          {user && (
-            <Link href="/alerts" className="relative p-2 text-gray-400 hover:text-white transition-all duration-200 hover:bg-white/5 rounded-full active:scale-95">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D6D] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D6D] border-2 border-[#080E19]"></span>
-              </span>
-            </Link>
-          )}
+          <Link href="/alerts" className="relative p-2 text-gray-400 hover:text-white transition-all duration-200 hover:bg-white/5 rounded-full active:scale-95">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D6D] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D6D] border-2 border-[#080E19]"></span>
+            </span>
+          </Link>
           <div className="text-gray-400 font-mono tracking-tight font-bold">
             {time || "--:--:--"}
           </div>
