@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import yfinance as yf
+import pandas as pd
 import asyncio
 import json
 import time
@@ -112,6 +113,59 @@ def get_stock(symbol: str):
     if symbol not in SYMBOLS:
         return {"error": f"{symbol} not in watchlist. Valid symbols: {SYMBOLS}"}
     return fetch_stock_data(symbol)
+
+
+@app.get("/api/backtest/history")
+def get_backtest_history(symbol: str, start: str, end: str):
+    """
+    Fetch historical data for backtesting.
+    Example: /api/backtest/history?symbol=AAPL&start=2024-01-01&end=2024-12-31
+    """
+    try:
+        symbol = symbol.upper()
+        # Clean symbol for NSE if needed (frontend might send RELIANCE instead of RELIANCE.NS)
+        if not symbol.endswith(".NS") and symbol in [s.replace(".NS", "") for s in SYMBOLS]:
+            symbol = f"{symbol}.NS"
+            
+        df = yf.download(symbol, start=start, end=end, interval="1d")
+        
+        if df.empty:
+            return {"error": f"No data found for {symbol} between {start} and {end}"}
+            
+        # Reset index to get Date as a column
+        df = df.reset_index()
+        
+        # Flatten MultiIndex columns if present
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [col[0] if col[1] == "" else col[0] for col in df.columns]
+
+        history = []
+        for _, row in df.iterrows():
+            # Ensure row["Date"] is a timestamp
+            date_val = row["Date"]
+            if isinstance(date_val, pd.Series):
+                date_val = date_val.iloc[0]
+            
+            date_str = date_val.strftime("%Y-%m-%d")
+
+            def get_val(col):
+                val = row[col]
+                if isinstance(val, (pd.Series, dict, list, tuple)): return float(val.iloc[0] if isinstance(val, pd.Series) else val[0])
+                return float(val)
+
+            history.append({
+                "time": date_str,
+                "open": round(get_val("Open"), 2),
+                "high": round(get_val("High"), 2),
+                "low": round(get_val("Low"), 2),
+                "close": round(get_val("Close"), 2),
+                "volume": int(get_val("Volume"))
+            })
+            
+        return history
+    except Exception as e:
+        print(f"[ERROR] Backtest history fetch failed: {e}")
+        return {"error": str(e)}
 
 
 # ── Server-Sent Events  ──────────────────────────────────────────────────────

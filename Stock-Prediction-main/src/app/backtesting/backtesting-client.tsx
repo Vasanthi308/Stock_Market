@@ -90,12 +90,22 @@ export default function BacktestingClient() {
         });
     }, [form]);
 
-    function generateMockData(values: z.infer<typeof backtestingSchema>): BacktestResults {
-        const { initialCapital, dateRange } = values;
+    function calculateEMA(data: number[], period: number) {
+        if (data.length < period) return data[data.length - 1];
+        const k = 2 / (period + 1);
+        let ema = data[0];
+        for (let i = 1; i < data.length; i++) {
+            ema = (data[i] * k) + (ema * (1 - k));
+        }
+        return ema;
+    }
 
+    async function runBacktestSimulation(symbol: string, initialCapital: number, history: any[]) {
+        setIsLoading(true);
+        setBacktestResults(null);
+        
         const trades: Trade[] = [];
         const equityCurve: { date: string; portfolio: number, benchmark: number }[] = [];
-        
         const candlestickData: CandlestickData[] = [];
         const signalsForChart: SignalMarker[] = [];
 
@@ -104,9 +114,6 @@ export default function BacktestingClient() {
         let portfolioValue = initialCapital;
         let avgBuyPrice = 0;
         
-        let lastClose = Math.random() * 200 + 100;
-        const days = Math.max((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 3600 * 24), 1);
-
         let wins = 0;
         let totalProfitLoss = 0;
         let consecutiveLosses = 0;
@@ -114,38 +121,39 @@ export default function BacktestingClient() {
         let grossProfit = 0;
         let grossLoss = 0;
 
-        let benchmarkValue = initialCapital;
+        const benchmarkInitialPrice = history[0].close;
+        const shortPeriod = 9;
+        const longPeriod = 21;
 
-        for (let i = 0; i <= days; i++) {
-            const date = new Date(dateRange.from);
-            date.setDate(date.getDate() + i);
-            const dateString = date.toISOString().split('T')[0];
+        // Process day by day for "real-time" feel
+        for (let i = 0; i < history.length; i++) {
+            const day = history[i];
+            const dateString = day.time;
+            const close = day.close;
 
-            const open = parseFloat((lastClose + (Math.random() - 0.5) * 2).toFixed(2));
-            let close = parseFloat((open + (Math.random() - 0.5) * 5).toFixed(2));
-            if (close < 1) close = 1;
-            const high = parseFloat((Math.max(open, close) + Math.random() * 2).toFixed(2));
-            const low = parseFloat((Math.min(open, close) - Math.random() * 2).toFixed(2));
-            lastClose = close;
-
-            candlestickData.push({ time: dateString, open, high, low, close });
+            candlestickData.push(day);
             
-            benchmarkValue *= (1 + (Math.random() - 0.45) * 0.007);
+            // Benchmark simulation (Buy and Hold)
+            const benchmarkValue = (initialCapital / benchmarkInitialPrice) * close;
 
-            portfolioValue = cash + shares * close;
-            
-            const rsi = Math.random() * 100;
-            
-            if (Math.random() < 0.05) {
-                if (rsi < 30 && cash > close) { // Buy condition
-                    const quantity = Math.floor((cash * 0.5) / close); // Use 50% of cash
+            // Strategy logic (EMA Crossover)
+            if (i >= longPeriod) {
+                const recentCloses = history.slice(0, i + 1).map(d => d.close);
+                const shortEma = calculateEMA(recentCloses.slice(-shortPeriod), shortPeriod);
+                const longEma = calculateEMA(recentCloses.slice(-longPeriod), longPeriod);
+                
+                const prevRecentCloses = history.slice(0, i).map(d => d.close);
+                const prevShortEma = calculateEMA(prevRecentCloses.slice(-shortPeriod), shortPeriod);
+                const prevLongEma = calculateEMA(prevRecentCloses.slice(-longPeriod), longPeriod);
+
+                // Buy: Golden Cross (Short EMA crosses above Long EMA)
+                if (prevShortEma <= prevLongEma && shortEma > longEma && cash > close) {
+                    const quantity = Math.floor(cash / close);
                     if (quantity > 0) {
-                        const newAvgBuyPrice = (avgBuyPrice * shares + close * quantity) / (shares + quantity);
                         shares += quantity;
-                        avgBuyPrice = newAvgBuyPrice;
+                        avgBuyPrice = close;
                         cash -= quantity * close;
-                        portfolioValue = cash + shares * close;
-                        trades.push({ date: dateString, action: 'BUY', price: close, quantity, profitLoss: 0, portfolioValue });
+                        trades.push({ date: dateString, action: 'BUY', price: close, quantity, profitLoss: 0, portfolioValue: cash + shares * close });
                         signalsForChart.push({
                             time: dateString,
                             position: 'belowBar',
@@ -154,8 +162,10 @@ export default function BacktestingClient() {
                             text: `BUY @ ${close.toFixed(2)}`
                         });
                     }
-                } else if (rsi > 70 && shares > 0) { // Sell condition
-                    const quantity = shares; // Sell all shares
+                } 
+                // Sell: Death Cross (Short EMA crosses below Long EMA)
+                else if (prevShortEma >= prevLongEma && shortEma < longEma && shares > 0) {
+                    const quantity = shares;
                     const profitLoss = (close - avgBuyPrice) * quantity;
 
                     if (profitLoss > 0) {
@@ -165,16 +175,13 @@ export default function BacktestingClient() {
                     } else {
                         grossLoss += Math.abs(profitLoss);
                         consecutiveLosses++;
-                        if (consecutiveLosses > maxConsecutiveLosses) {
-                            maxConsecutiveLosses = consecutiveLosses;
-                        }
+                        maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses);
                     }
                     totalProfitLoss += profitLoss;
                     cash += quantity * close;
                     shares = 0;
-                    portfolioValue = cash;
-                    trades.push({ date: dateString, action: 'SELL', price: close, quantity, profitLoss, portfolioValue });
-                     signalsForChart.push({
+                    trades.push({ date: dateString, action: 'SELL', price: close, quantity, profitLoss, portfolioValue: cash });
+                    signalsForChart.push({
                         time: dateString,
                         position: 'aboveBar',
                         color: 'hsl(var(--chart-2))',
@@ -183,64 +190,89 @@ export default function BacktestingClient() {
                     });
                 }
             }
-            
+
+            portfolioValue = cash + shares * close;
             equityCurve.push({ date: dateString, portfolio: parseFloat(portfolioValue.toFixed(2)), benchmark: parseFloat(benchmarkValue.toFixed(2)) });
+
+            // Update state periodically for real-time feel (every 10 days of data or so)
+            if (i % 10 === 0 || i === history.length - 1) {
+                const totalSellTrades = trades.filter(t => t.action === 'SELL').length;
+                const winRate = totalSellTrades > 0 ? (wins / totalSellTrades) * 100 : 0;
+                
+                const currentEquityCurve = [...equityCurve];
+                const maxDrawdownValue = currentEquityCurve.reduce((max, point, index) => {
+                    const peak = Math.max(...currentEquityCurve.slice(0, index + 1).map(p => p.portfolio));
+                    const drawdown = (peak - point.portfolio) / peak;
+                    return Math.max(max, drawdown);
+                }, 0);
+
+                const totalReturn = ((portfolioValue - initialCapital) / initialCapital) * 100;
+                const sharpeRatio = (totalReturn / 100) / (maxDrawdownValue * 1.5 + 0.1) * 1.2;
+
+                setBacktestResults({
+                    totalReturn,
+                    winRate,
+                    sharpeRatio: isNaN(sharpeRatio) ? 0 : sharpeRatio,
+                    maxDrawdown: -maxDrawdownValue,
+                    totalTrades: trades.length,
+                    profitFactor: grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 100 : 0),
+                    initialCapital,
+                    finalPortfolioValue: portfolioValue,
+                    equityCurve: currentEquityCurve,
+                    trades: [...trades],
+                    sortinoRatio: sharpeRatio * 1.2,
+                    calmarRatio: maxDrawdownValue > 0 ? (totalReturn / 12) / maxDrawdownValue : 0,
+                    avgTradeReturn: totalSellTrades > 0 ? totalProfitLoss / totalSellTrades : 0,
+                    maxConsecutiveLosses,
+                    candlestickData: [...candlestickData],
+                    signals: [...signalsForChart],
+                });
+
+                // Add a small delay for visualization effect if it's very fast
+                if (history.length > 50) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
         }
-        
-        const finalPortfolioValue = portfolioValue;
-        const totalReturn = ((finalPortfolioValue - initialCapital) / initialCapital) * 100;
-        const totalSellTrades = trades.filter(t => t.action === 'SELL').length;
-        const winRate = totalSellTrades > 0 ? (wins / totalSellTrades) * 100 : 0;
-        
-        const maxDrawdownValue = equityCurve.reduce((max, point, index) => {
-            const peak = Math.max(...equityCurve.slice(0, index + 1).map(p => p.portfolio));
-            const drawdown = (peak - point.portfolio) / peak;
-            return Math.max(max, drawdown);
-        }, 0);
 
-        const sharpeRatio = (totalReturn / 100) / (maxDrawdownValue * 1.5 + 0.1) * 1.2;
-        const sortinoRatio = sharpeRatio * 1.35;
-        const calmarRatio = maxDrawdownValue > 0 ? (totalReturn / 12) / maxDrawdownValue : 0;
-        const avgTradeReturn = totalSellTrades > 0 ? totalProfitLoss / totalSellTrades : 0;
-        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 100 : 0;
-
-        return {
-            totalReturn,
-            winRate,
-            sharpeRatio: isNaN(sharpeRatio) ? 0 : sharpeRatio,
-            maxDrawdown: -maxDrawdownValue,
-            totalTrades: trades.length,
-            profitFactor: isNaN(profitFactor) ? 0 : profitFactor,
-            initialCapital,
-            finalPortfolioValue,
-            equityCurve,
-            trades,
-            sortinoRatio: isNaN(sortinoRatio) ? 0 : sortinoRatio,
-            calmarRatio: isNaN(calmarRatio) ? 0 : calmarRatio,
-            avgTradeReturn,
-            maxConsecutiveLosses,
-            candlestickData,
-            signals: signalsForChart,
-        };
+        setIsLoading(false);
+        toast({
+            title: 'Backtest Complete',
+            description: `Backtest for ${symbol} using EMA Crossover Strategy is finished.`,
+        });
     }
 
-    function onSubmit(values: z.infer<typeof backtestingSchema>) {
+    async function onSubmit(values: z.infer<typeof backtestingSchema>) {
         setIsLoading(true);
         setBacktestResults(null);
-
-        const autoSelectedStrategy = 'Momentum AI Strategy';
-        setSelectedStrategy(autoSelectedStrategy);
         setSubmittedValues(values);
-        
-        setTimeout(() => {
-            const results = generateMockData(values);
-            setBacktestResults(results);
+        setSelectedStrategy('EMA Crossover Strategy');
+
+        try {
+            const startStr = format(values.dateRange.from, "yyyy-MM-dd");
+            const endStr = format(values.dateRange.to, "yyyy-MM-dd");
+            
+            const response = await fetch(`http://localhost:8000/api/backtest/history?symbol=${values.symbol}&start=${startStr}&end=${endStr}`);
+            const history = await response.json();
+
+            if (history.error) {
+                throw new Error(history.error);
+            }
+
+            if (!Array.isArray(history) || history.length === 0) {
+                throw new Error("No data received from backend.");
+            }
+
+            await runBacktestSimulation(values.symbol, values.initialCapital, history);
+        } catch (error: any) {
+            console.error('Backtest failed:', error);
             setIsLoading(false);
             toast({
-                title: 'Backtest Complete',
-                description: `Backtest for ${values.symbol} using ${autoSelectedStrategy} is finished.`,
+                variant: 'destructive',
+                title: 'Backtest Failed',
+                description: error.message || 'There was a problem running the backtest.',
             });
-        }, 3000);
+        }
     }
 
     return (
