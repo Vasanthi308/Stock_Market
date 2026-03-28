@@ -1,3 +1,4 @@
+
 # QuantAxis Pro - Advanced Trading & Backtesting Terminal
 
 A high-performance trading dashboard and strategy backtesting environment built with Next.js and FastAPI.
@@ -97,3 +98,5 @@ Market data is retrieved using the `yfinance` library in Python. This data is th
 
 ---
 *Built for Traders, by Developers.*
+# Stock_Market_Project
+
